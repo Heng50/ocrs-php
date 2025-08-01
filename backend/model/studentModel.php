@@ -36,13 +36,9 @@
         }
 
 
-        public function editStudent() {
-            $user_id = $_POST['user_id'];
-            $username = $_POST['username'];
-            $email = $_POST['email'];
-
+        public function editStudent($id, $username, $email) {
             $stmt = $this->pdo->prepare("SELECT count(*) FROM users WHERE (username = ? OR email = ?) AND user_id != ?");
-            $stmt->execute([$username, $email, $user_id]);
+            $stmt->execute([$username, $email, $id]);
 
             $count = $stmt->fetchColumn();
 
@@ -51,45 +47,51 @@
             } 
 
             $stmt = $this->pdo->prepare("UPDATE users SET username = ?, email = ?, updated_at = NOW() WHERE user_id = ?");
-            $result = $stmt->execute([$username, $email, $user_id]);
+            $result = $stmt->execute([$username, $email, $id]);
             if(!$result) {
                 return 2;
             }
 
-            return 0;
+            return 3;
         }
 
-        public function deleteStudent() {
-            $user_id = $_POST['user_id'];
+        public function deleteStudent($id) {
             $stmt = $this->pdo->prepare("DELETE FROM users WHERE user_id = ?");
-            $result = $stmt->execute([$user_id]);
+            $result = $stmt->execute([$id]);
             if(!$result) {
-                return 1;
+                return false;
             }
 
-            return 0;
+            return true;
         }
 
-        public function updateStatus() {
-            $user_id = $_POST['user_id'];
-            $status = $_POST['status'];
-
+        public function updateStatus($id, $status) {
             if($status === 'approved') {
                 $sql = "UPDATE users SET status = ?, is_active = 1, updated_at = NOW() WHERE user_id = ?";
             } else {
                 $sql = "UPDATE users SET status = ?, updated_at = NOW() WHERE user_id = ?";
             }
 
-            $params = [$status, $user_id];
+            $params = [$status, $id];
 
             $stmt = $this->pdo->prepare($sql);
             $result = $stmt->execute($params);
 
             if(!$result) {
-                return 1;
+                return false;
             }
 
-            return 0;
+            return true;
+        }
+
+        public function updateProfile($programme, $id) {
+            $stmt = $this->pdo->prepare("UPDATE users SET programme= ?, profile_completed = 1, updated_at = NOW() WHERE user_id = ?");
+            $result = $stmt->execute([$programme, $id]);
+            if(!$result) {
+                return false;
+            }
+
+            return true;
         }
 
         public function search() {

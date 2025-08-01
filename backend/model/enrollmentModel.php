@@ -21,6 +21,37 @@
             return 0;
         }
 
+        public function getAllEnrollment() {
+            $stmt = $this->pdo->prepare("
+                SELECT e.enrollment_id, e.status, e.created_at, e.updated_at,
+                       u.username, u.user_id,
+                       c.course_code, c.course_name,
+                       s.semester_code
+                FROM enrollments e
+                JOIN users u ON e.student_id = u.user_id
+                JOIN class_sessions cs ON e.session_id = cs.session_id
+                JOIN courses c ON cs.course_id = c.course_id
+                JOIN semesters s ON cs.semester_id = s.semester_id
+                ORDER BY e.status, e.enrollment_id
+            ");
+            $result = $stmt->execute();
+            if(!$result) {
+                return 1;
+            }
+
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+
+        public function deleteEnrollment($enrollment_id) {
+            $stmt = $this->pdo->prepare("DELETE FROM enrollments WHERE enrollment_id = ?");
+            $result = $stmt->execute([$enrollment_id]);
+            if(!$result) {
+                return 1;
+            }
+
+            return 0;
+        }
+
         public function getEnrolledStudent() {
             $where = '';
             $where_params = [];
@@ -56,7 +87,10 @@
 
             // Student Name	Student ID	Course	Programme	Semester
             $stmt = $this->pdo->prepare("
-                SELECT e.enrollment_id, u.username, u.user_id, c.course_name, p.prog_name, s.semester_code, e.final_grade
+                SELECT e.enrollment_id, e.final_grade, e.is_completed,
+                       u.username, u.user_id,
+                       c.course_code, c.course_name, p.prog_name,
+                       s.semester_code
                 FROM enrollments e
                 JOIN users u ON e.student_id = u.user_id
                 JOIN class_sessions cs ON e.session_id = cs.session_id

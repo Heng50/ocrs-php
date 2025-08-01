@@ -1,6 +1,19 @@
 <?php
     session_start();
     require_once '../header.php';
+    require_once '../backend/model/studentModel.php';
+
+    // Check if user is logged in
+    if (!isset($_SESSION['user'])) {
+        header('Location: ../index.php');
+        exit();
+    }
+    
+    // If profile is not completed, redirect to profile completion page
+    if ($_SESSION['user']['profile_completed'] == 0) {
+        header('Location: profile_completed.php');
+        exit();
+    }
 ?>
 
 <div class="min-h-screen bg-gray-50">

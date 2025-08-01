@@ -138,7 +138,7 @@
                                             },
                                             body: JSON.stringify({
                                                 session_id: item.id,
-                                                student_id: <?php echo $_SESSION['user']['id']; ?>,
+                                                student_id: <?php echo isset($_SESSION['user']['id']) ? $_SESSION['user']['id'] : 'null'; ?>
                                             })
                                         })
                                         .then(response => response.json())

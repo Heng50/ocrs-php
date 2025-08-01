@@ -1,6 +1,6 @@
 <?php
-    require_once 'header.php';
     session_start();
+    require_once 'header.php';
 ?>
     <div class="flex items-center justify-center min-h-screen">
         <div class="w-full max-w-md p-8 rounded-2xl shadow-xl border border-black/10">

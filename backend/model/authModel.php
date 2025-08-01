@@ -10,11 +10,17 @@
             $username = $_POST['username'];
             $email = $_POST['email'];
             $password = $_POST['password'];
+            $confirm_password = $_POST['confirm_password'];
             $role = 'user';
             $status = 'pending';
             $isActive = 0;
             $created_at = date('Y-m-d H:i:s');
             $updated_at = date('Y-m-d H:i:s');
+
+            // Check if passwords match
+            if($password != $confirm_password){
+                return 3; // Password and Confirm Password do not match
+            }
 
             $sql = "SELECT username, email FROM users WHERE (username = ? OR email = ?) AND is_active = 1 AND status = 'approved'"; // check if username or email already exists
             $stmt = $this->pdo->prepare($sql);
@@ -39,9 +45,12 @@
             $username = $_POST['username'];
             $password = $_POST['password'];
 
-            $sql = "SELECT user_id, username, password, role, email FROM users WHERE username = ? AND is_active = 1 AND status = 'approved'";
+            $sql = "SELECT user_id, username, password, role, email, profile_completed FROM users WHERE username = ? AND is_active = 1 AND status = 'approved'";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([$username]);
+            $result = $stmt->execute([$username]);
+            if(!$result){
+                return 1;
+            }
             $user = $stmt->fetch();
 
             if($user && password_verify($password, $user['password'])){
@@ -50,12 +59,12 @@
                     'username' => $user['username'],
                     'role' => $user['role'],
                     'email' => $user['email'],
-                    // later on add
+                    'profile_completed' => $user['profile_completed'],
                 ];
 
                 return 0;
             } else {
-                return 1;
+                return 2;
             }
         }
 

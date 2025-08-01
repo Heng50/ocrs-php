@@ -24,7 +24,7 @@
             
             <h1 class="text-3xl font-bold text-black mb-6 text-center">Create Account</h1>
             
-            <form action="backend/controller/authController.php" method="post" class="space-y-4">
+            <form action="backend/auth.php" method="post" class="space-y-4">
                 <div>
                     <label for="username" class="block text-sm font-medium text-black mb-1">Username</label>
                     <input 

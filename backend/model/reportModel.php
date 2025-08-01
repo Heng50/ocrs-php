@@ -11,7 +11,7 @@
             $where = '';
             $where_params = [];
 
-            if(isset($_POST['semester_id']) && $_POST['semester_id'] !== 'null') {
+            if(isset($_POST['semester_id']) && !empty($_POST['semester_id'])) {
                 $semester_id = $_POST['semester_id'];
                 $where .= " AND s.semester_id = ?";
                 $where_params[] = $semester_id;
@@ -22,7 +22,7 @@
                 $semester = $stmt->fetch(PDO::FETCH_ASSOC);
             }
 
-            if(isset($_POST['prog_id']) && $_POST['prog_id'] !== 'null') {
+            if(isset($_POST['prog_id']) && !empty($_POST['prog_id'])) {
                 $prog_id = $_POST['prog_id'];
                 $where .= " AND c.prog_id = ?";
                 $where_params[] = $prog_id;
@@ -58,7 +58,10 @@
                     s.session_id, c.course_code, c.course_name;
             ";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute($where_params);
+            $result = $stmt->execute($where_params);
+            if(!$result) {
+                return 1;
+            }
             $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             return [$data, $semester, $programme];    
@@ -72,7 +75,7 @@
             $where_params[] = $user_id;
 
             // Check if semester_id is set and not null
-            if(isset($_POST['semester_id']) && $_POST['semester_id'] !== 'null') {
+            if(isset($_POST['semester_id']) && !empty($_POST['semester_id'])) {
                 $semester_id = $_POST['semester_id'];
                 $where .= " AND s.semester_id = ?";
                 $where_params[] = $semester_id;
@@ -81,11 +84,13 @@
 
             $sql = "
                 SELECT 
-                c.course_code,
-                c.course_name,
-                c.credits,
-                e.final_grade,
-                sem.semester_code
+                    c.course_code,
+                    c.course_name,
+                    c.credits,
+                    e.final_grade,
+                    sem.semester_code,
+                    u.username AS student_name,
+                    u.user_id AS student_id
                 FROM enrollments e
                 JOIN class_sessions s ON e.session_id = s.session_id
                 JOIN semesters sem ON s.semester_id = sem.semester_id
@@ -105,14 +110,56 @@
 
             $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            return $data;
+            $sql = "
+                SELECT
+                    u.username,
+                    u.user_id,
+                    ROUND(SUM(
+                        CASE 
+                            WHEN e.is_completed = 1 AND e.final_grade IS NOT NULL THEN 
+                                CASE e.final_grade
+                                    WHEN 'A' THEN 4.00
+                                    WHEN 'A-' THEN 3.67
+                                    WHEN 'B+' THEN 3.33
+                                    WHEN 'B' THEN 3.00
+                                    WHEN 'B-' THEN 2.67
+                                    WHEN 'C+' THEN 2.33
+                                    WHEN 'C' THEN 2.00
+                                    WHEN 'D' THEN 1.00
+                                    WHEN 'F' THEN 0.00
+                                    ELSE NULL
+                                END * c.credits
+                            ELSE NULL
+                        END
+                    ) / SUM(
+                        CASE 
+                            WHEN e.is_completed = 1 AND e.final_grade IS NOT NULL THEN c.credits
+                            ELSE NULL
+                        END
+                    ), 2) AS cgpa
+                FROM enrollments e
+                JOIN class_sessions cs ON e.session_id = cs.session_id
+                JOIN courses c ON cs.course_id = c.course_id
+                JOIN users u ON e.student_id = u.user_id
+                WHERE e.student_id = ?
+                GROUP BY u.user_id;
+            ";
+
+            $stmt = $this->pdo->prepare($sql);
+            $result = $stmt->execute([$user_id]);
+            if(!$result) {
+                return 1;
+            }
+            $cgpa = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return [$data, $cgpa];
         }
 
         public function getOverallAcademicProgress(){
             $where = '';
             $where_params = [];
 
-            if(isset($_POST['prog_id']) && $_POST['prog_id'] !== 'null') {
+            if(isset($_POST['prog_id']) && !empty($_POST['prog_id'])) {
                 $prog_id = $_POST['prog_id'];
                 $where .= " AND u.programme = ?";
                 $where_params[] = $prog_id;
@@ -123,6 +170,7 @@
                     u.user_id AS student_id,
                     u.username AS student_name,
                     p.prog_name,
+                    p.prog_code,
                     SUM(c.credits) AS total_credits_completed,
                     ROUND((SUM(c.credits) / p.total_credit) * 100, 2) AS degree_progress_percentage,
 
